@@ -87,23 +87,23 @@ On Windows, run:
 ```bash
 mvnw.cmd test
 ```
+
 ## API Screenshots
 
 ### Get All Tasks
-![Get All Tasks](GET all tasks.png)
+![Get All Tasks](screenshots/GET%20all%20tasks.png)
 
 ### Get Task by ID
-![Get All Tasks](GET task by ID.png)
-
+![Get Task by ID](screenshots/GET%20task%20by%20ID.png)
 
 ### Create Task
-![Create Task](POST create task.png)
+![Create Task](screenshots/POST%20create%20task.png)
 
 ### Update Task
-![Update Task](PUT update tasks.png)
+![Update Task](screenshots/PUT%20update%20task.png)
 
 ### Delete Task
-![Delete Task](DELETE task.png)
+![Delete Task](screenshots/DELETE%20task.png)
 
 ## Author
 
