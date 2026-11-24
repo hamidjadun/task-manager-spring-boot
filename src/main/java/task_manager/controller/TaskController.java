@@ -1,22 +1,17 @@
-
 package task_manager.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-import task_manager.model.Task;
-import task_manager.service.TaskService;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
+
+import task_manager.model.Task;
+import task_manager.service.TaskService;
 import task_manager.dto.TaskRequest;
 import task_manager.dto.TaskResponse;
 
 import java.util.List;
+import java.security.Principal;
 
 @RestController
 public class TaskController {
@@ -28,24 +23,27 @@ public class TaskController {
     }
 
     @GetMapping("/api/tasks")
-    public List<TaskResponse> getTasks() {
+    public List<TaskResponse> getTasks(Principal principal) {
 
-        return taskService.getTasks()
+        return taskService.getTasks(principal.getName())
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
     }
 
     @GetMapping("/api/tasks/{id}")
-    public TaskResponse getTaskById(@PathVariable Long id) {
+    public TaskResponse getTaskById(
+            @PathVariable Long id, Principal principal) {
 
-        Task task = taskService.getTaskById(id);
+        Task task = taskService.getTaskById(id, principal.getName());
 
         return mapToResponse(task);
     }
 
     @PostMapping("/api/tasks")
-    public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody TaskRequest request) {
+    public ResponseEntity<TaskResponse> createTask(
+            @Valid @RequestBody TaskRequest request,
+            Principal principal) {
 
         Task task = new Task(
                 null,
@@ -54,7 +52,9 @@ public class TaskController {
                 request.isCompleted()
         );
 
-        Task createdTask = taskService.createTask(task);
+        Task createdTask = taskService.createTask(
+                task, principal.getName()
+        );
 
         TaskResponse response = mapToResponse(createdTask);
 
@@ -62,7 +62,10 @@ public class TaskController {
     }
 
     @PutMapping("/api/tasks/{id}")
-    public TaskResponse updateTask(@PathVariable Long id, @Valid @RequestBody TaskRequest request) {
+    public TaskResponse updateTask(
+            @PathVariable Long id,
+            @Valid @RequestBody TaskRequest request,
+            Principal principal) {
 
         Task task = new Task(
                 id,
@@ -71,15 +74,18 @@ public class TaskController {
                 request.isCompleted()
         );
 
-        Task updatedTask = taskService.updateTask(id, task);
+        Task updatedTask = taskService.updateTask(
+                id, task, principal.getName()
+        );
 
         return mapToResponse(updatedTask);
     }
 
     @DeleteMapping("/api/tasks/{id}")
-    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteTask(
+            @PathVariable Long id, Principal principal) {
 
-        taskService.deleteTask(id);
+        taskService.deleteTask(id, principal.getName());
 
         return ResponseEntity.noContent().build();
     }

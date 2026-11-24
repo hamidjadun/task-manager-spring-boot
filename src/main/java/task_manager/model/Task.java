@@ -1,14 +1,8 @@
-
 package task_manager.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-
 
 @Entity
 @Table(name = "tasks")
@@ -19,18 +13,21 @@ public class Task {
     private Long id;
 
     @NotBlank(message = "Title is required")
-    @Size(min = 3, max = 50, message = "Title must be between 3 and 50 characters")
+    @Size(min = 3, max = 50,
+            message = "Title must be between 3 and 50 characters")
     private String title;
 
     private String description;
 
     private boolean completed;
 
-    // Default constructor
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private AppUser user;
+
     public Task() {
     }
 
-    // Parameterized constructor
     public Task(Long id, String title, String description, boolean completed) {
         this.id = id;
         this.title = title;
@@ -38,7 +35,6 @@ public class Task {
         this.completed = completed;
     }
 
-    // Getters
     public Long getId() {
         return id;
     }
@@ -55,7 +51,14 @@ public class Task {
         return completed;
     }
 
-    // Setters
+    public AppUser getUser() {
+        return user;
+    }
+
+    public void setUser(AppUser user) {
+        this.user = user;
+    }
+
     public void setId(Long id) {
         this.id = id;
     }
