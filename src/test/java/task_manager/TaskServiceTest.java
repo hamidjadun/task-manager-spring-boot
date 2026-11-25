@@ -1,34 +1,52 @@
 package task_manager;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import task_manager.exception.TaskNotFoundException;
+import task_manager.model.AppUser;
 import task_manager.model.Task;
 import task_manager.repository.TaskRepository;
+import task_manager.repository.UserRepository;
 import task_manager.service.TaskService;
 
 import java.util.List;
 import java.util.Optional;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import task_manager.exception.TaskNotFoundException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 public class TaskServiceTest {
+
+    private TaskRepository taskRepository;
+    private UserRepository userRepository;
+    private TaskService taskService;
+    private AppUser user;
+
+    @BeforeEach
+    void setUp() {
+
+        taskRepository = mock(TaskRepository.class);
+        userRepository = mock(UserRepository.class);
+
+        user = mock(AppUser.class);
+        when(user.getId()).thenReturn(1L);
+
+        when(userRepository.findByUsername("hamid"))
+                .thenReturn(Optional.of(user));
+
+        taskService = new TaskService(taskRepository, userRepository);
+    }
 
     @Test
     void testGetTasks() {
 
-        TaskRepository taskRepository = Mockito.mock(TaskRepository.class);
-
-        TaskService taskService = new TaskService(taskRepository);
-
         Task task1 = new Task(1L, "Learn Java", "Java basics", false);
         Task task2 = new Task(2L, "Learn Spring Boot", "Spring Boot basics", true);
 
-        when(taskRepository.findAll()).thenReturn(List.of(task1, task2));
+        when(taskRepository.findByUserId(1L))
+                .thenReturn(List.of(task1, task2));
 
-        List<Task> tasks = taskService.getTasks();
+        List<Task> tasks = taskService.getTasks("hamid");
 
         assertEquals(2, tasks.size());
         assertEquals("Learn Java", tasks.get(0).getTitle());
@@ -38,92 +56,77 @@ public class TaskServiceTest {
     @Test
     void testGetTaskById() {
 
-        TaskRepository taskRepository = Mockito.mock(TaskRepository.class);
-
-        TaskService taskService = new TaskService(taskRepository);
-
         Task task = new Task(1L, "Learn Java", "Java basics", false);
 
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
+        when(taskRepository.findByIdAndUserId(1L, 1L))
+                .thenReturn(Optional.of(task));
 
-        Task result = taskService.getTaskById(1L);
+        Task result = taskService.getTaskById(1L, "hamid");
 
         assertEquals(1L, result.getId());
         assertEquals("Learn Java", result.getTitle());
-        assertEquals("Java basics", result.getDescription());
-        assertEquals(false, result.isCompleted());
     }
 
     @Test
     void testGetTaskByIdNotFound() {
 
-        TaskRepository taskRepository = Mockito.mock(TaskRepository.class);
+        when(taskRepository.findByIdAndUserId(100L, 1L))
+                .thenReturn(Optional.empty());
 
-        TaskService taskService = new TaskService(taskRepository);
-
-        when(taskRepository.findById(100L)).thenReturn(Optional.empty());
-
-        assertThrows(TaskNotFoundException.class, () -> {
-            taskService.getTaskById(100L);
-        });
+        assertThrows(TaskNotFoundException.class, () ->
+                taskService.getTaskById(100L, "hamid"));
     }
 
     @Test
     void testCreateTask() {
 
-        TaskRepository taskRepository = Mockito.mock(TaskRepository.class);
+        Task task = new Task(null, "Learn Spring Boot",
+                "Practice Spring Boot testing", false);
 
-        TaskService taskService = new TaskService(taskRepository);
+        when(taskRepository.save(task)).thenReturn(task);
 
-        Task task = new Task(null, "Learn Spring Boot", "Practice Spring Boot testing", false);
+        Task result = taskService.createTask(task, "hamid");
 
-        Task savedTask = new Task(1L, "Learn Spring Boot", "Practice Spring Boot testing", false);
-
-        when(taskRepository.save(task)).thenReturn(savedTask);
-
-        Task result = taskService.createTask(task);
-
-        assertEquals(1L, result.getId());
         assertEquals("Learn Spring Boot", result.getTitle());
-        assertEquals("Practice Spring Boot testing", result.getDescription());
-        assertEquals(false, result.isCompleted());
+        assertEquals(user, result.getUser());
+
+        verify(taskRepository).save(task);
     }
 
     @Test
     void testUpdateTask() {
 
-        TaskRepository taskRepository = Mockito.mock(TaskRepository.class);
+        Task existingTask = new Task(
+                1L, "Learn Java", "Java basics", false);
 
-        TaskService taskService = new TaskService(taskRepository);
+        Task updatedTask = new Task(
+                null, "Learn Spring Boot", "Spring Boot basics", true);
 
-        Task existingTask = new Task(1L, "Learn Java", "Java basics", false);
+        when(taskRepository.findByIdAndUserId(1L, 1L))
+                .thenReturn(Optional.of(existingTask));
 
-        Task updatedTask = new Task(null, "Learn Spring Boot", "Spring Boot basics", true);
+        when(taskRepository.save(existingTask))
+                .thenReturn(existingTask);
 
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(existingTask));
-        when(taskRepository.save(existingTask)).thenReturn(existingTask);
+        Task result = taskService.updateTask(
+                1L, updatedTask, "hamid");
 
-        Task result = taskService.updateTask(1L, updatedTask);
-
-        assertEquals(1L, result.getId());
         assertEquals("Learn Spring Boot", result.getTitle());
         assertEquals("Spring Boot basics", result.getDescription());
-        assertEquals(true, result.isCompleted());
+        assertTrue(result.isCompleted());
     }
 
     @Test
     void testDeleteTask() {
 
-        TaskRepository taskRepository = Mockito.mock(TaskRepository.class);
+        Task task = new Task(
+                1L, "Learn Java", "Java basics", false);
 
-        TaskService taskService = new TaskService(taskRepository);
+        when(taskRepository.findByIdAndUserId(1L, 1L))
+                .thenReturn(Optional.of(task));
 
-        Task task = new Task(1L, "Learn Java", "Java basics", false);
+        taskService.deleteTask(1L, "hamid");
 
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
-
-        taskService.deleteTask(1L);
-
-        Mockito.verify(taskRepository).delete(task);
+        verify(taskRepository).delete(task);
     }
 }
