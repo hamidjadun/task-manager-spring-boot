@@ -1,3 +1,4 @@
+
 package task_manager.service;
 
 import org.springframework.security.authentication.BadCredentialsException;
@@ -7,6 +8,7 @@ import task_manager.dto.LoginRequest;
 import task_manager.dto.LoginResponse;
 import task_manager.dto.RegisterRequest;
 import task_manager.model.AppUser;
+import task_manager.model.RefreshToken;
 import task_manager.repository.UserRepository;
 import task_manager.security.JwtService;
 
@@ -16,15 +18,18 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+            JwtService jwtService,
+            RefreshTokenService refreshTokenService) {
 
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     public String register(RegisterRequest request) {
@@ -56,8 +61,38 @@ public class AuthService {
             throw new BadCredentialsException("Invalid username or password");
         }
 
-        String token = jwtService.generateToken(user.getUsername());
+        String accessToken = jwtService.generateToken(user.getUsername());
 
-        return new LoginResponse(token);
+        RefreshToken refreshToken =
+                refreshTokenService.createRefreshToken(user.getUsername());
+
+        return new LoginResponse(
+                accessToken,
+                refreshToken.getToken()
+        );
+    }
+
+    public LoginResponse refreshAccessToken(String token) {
+
+        RefreshToken refreshToken = refreshTokenService
+                .findByToken(token);
+
+        refreshTokenService.verifyExpiration(refreshToken);
+
+        String username = refreshToken.getUser().getUsername();
+
+        String accessToken = jwtService.generateToken(username);
+
+        RefreshToken newRefreshToken =
+                refreshTokenService.createRefreshToken(username);
+
+        return new LoginResponse(
+                accessToken,
+                newRefreshToken.getToken()
+        );
+    }
+
+    public void logout(String refreshToken) {
+        refreshTokenService.revokeRefreshToken(refreshToken);
     }
 }
